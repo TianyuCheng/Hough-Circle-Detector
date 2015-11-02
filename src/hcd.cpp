@@ -64,6 +64,9 @@ QImage HoughCircleDetector::detect(const QImage &source, unsigned int min_r, uns
       hough[x].fill(0);
     }
     
+    ggc::Timer t((std::string("radius") + std::to_string(i)).c_str());
+    t.start();
+
     /* find all the edges */
     for(unsigned int y = 0; y < binary.height(); y++)
     {
@@ -76,6 +79,9 @@ QImage HoughCircleDetector::detect(const QImage &source, unsigned int min_r, uns
         }
       }
     }
+
+    t.stop();
+    printf("Radius %d Time: %llu ns\n", i, t.duration());
     
     /* loop through all the Hough-space images, searching for bright spots, which
     indicate the center of a circle, then draw circles in image-space */
@@ -119,7 +125,6 @@ QImage HoughCircleDetector::detect(const QImage &source, unsigned int min_r, uns
 ****************************************************************************/
 void HoughCircleDetector::accum_circle(Image &image, const QPoint &position, const PointArray &points)
 {
-  #pragma omp parallel for
   for (int i = 0; i < points.size(); i++)
     accum_pixel(image, position + points[i]);
 }
@@ -155,7 +160,6 @@ void HoughCircleDetector::accum_pixel(Image &image, const QPoint &position)
 ****************************************************************************/
 void HoughCircleDetector::draw_circle(QImage &image, const QPoint &position, const PointArray &points, const QColor &color)
 {
-  #pragma omp parallel for
   for (int i = 0; i < points.size(); i++)
     draw_pixel(image, position + points[i], color);
 }
