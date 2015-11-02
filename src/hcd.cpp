@@ -10,6 +10,7 @@
 #include <QByteArray>
 #include <QColor>
 #include <cmath>
+#include <omp.h>
 
 #define MIN(X,Y) ((X) < (Y) ? (X) : (Y))
 
