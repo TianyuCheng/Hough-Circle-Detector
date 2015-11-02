@@ -8,6 +8,7 @@
 #include <QVector>
 
 typedef QVector<unsigned int> IntArray;
+typedef QVector<QPoint>       PointArray;
 typedef QVector<IntArray>     Image;
 
 class HoughCircleDetector
@@ -23,11 +24,12 @@ class HoughCircleDetector
   
   private: /* methods */
   
-    void accum_circle(Image &image, const QPoint &position, unsigned int radius);
+    void accum_circle(Image &image, const QPoint &position, const PointArray &points);
     void accum_pixel(Image &image, const QPoint &position);
   
-    void draw_circle(QImage &image, const QPoint &position, unsigned int radius, const QColor &color);
+    void draw_circle(QImage &image, const QPoint &position, const PointArray &points, const QColor &color);
     void draw_pixel(QImage &image, const QPoint &position, const QColor &color);
+    const PointArray circle_template(unsigned int radius);
     
     QImage edges(const QImage &source);
 };
