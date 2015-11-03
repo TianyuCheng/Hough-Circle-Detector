@@ -64,7 +64,7 @@ QImage HoughCircleDetector::detect(const QImage &source, unsigned int min_r, uns
       hough[x].fill(0);
     }
     
-    ggc::Timer t((std::string("radius") + std::to_string(i)).c_str());
+    ggc::Timer t("radius");
     t.start();
 
     /* find all the edges */
