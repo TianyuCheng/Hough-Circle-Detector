@@ -19,6 +19,12 @@
 #define TIMER
 #define MIN(X,Y) ((X) < (Y) ? (X) : (Y))
 
+
+bool QPointLessThan(const QPoint &s1, const QPoint &s2)
+{
+    return s1.x() == s2.x() ? s1.x() < s2.x() : s1.y() < s2.y();
+}
+
 /****************************************************************************
                 __   ___                 __  __           __
      ___  __ __/ /  / (_)___  __ _  ___ / /_/ /  ___  ___/ /__
@@ -129,14 +135,8 @@ void HoughCircleDetector::accum_circle(Image &image, const QSize &size, const QP
 {
   // split the loop for cache
   unsigned int total = points.size();
-  for (int i = 0; i < total; i += 8) accum_pixel(image, size, position + points[i]);
-  for (int i = 1; i < total; i += 8) accum_pixel(image, size, position + points[i]);
-  for (int i = 2; i < total; i += 8) accum_pixel(image, size, position + points[i]);
-  for (int i = 3; i < total; i += 8) accum_pixel(image, size, position + points[i]);
-  for (int i = 4; i < total; i += 8) accum_pixel(image, size, position + points[i]);
-  for (int i = 5; i < total; i += 8) accum_pixel(image, size, position + points[i]);
-  for (int i = 6; i < total; i += 8) accum_pixel(image, size, position + points[i]);
-  for (int i = 7; i < total; i += 8) accum_pixel(image, size, position + points[i]);
+  for (int i = 0; i < total; i++)
+      accum_pixel(image, size, position + points[i]);
 }
 
 /****************************************************************************
@@ -210,6 +210,7 @@ const PointArray HoughCircleDetector::circle_template(unsigned int radius)
            << QPoint(-y, -x);
   }
 
+  qSort(points.begin(), points.end(), QPointLessThan);
   return points;
 }
 
