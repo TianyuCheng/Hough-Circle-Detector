@@ -12,12 +12,10 @@
 #include <cmath>
 #include <cstdlib>
 #include <cstdio>
-#include <omp.h>
-
 #include "Timer.h"
 
-#define TIMER
 #define MIN(X,Y) ((X) < (Y) ? (X) : (Y))
+
 
 /****************************************************************************
                 __   ___                 __  __           __
@@ -43,45 +41,47 @@ QImage HoughCircleDetector::detect(const QImage &source, unsigned int min_r, uns
   
   /* build a vector to hold images in Hough-space for radius 1..max_r, where
   max_r is specified or the maximum radius of a circle in this image */
-  if(min_r == 0) min_r = 5;
+  if(min_r == 0)
+  {
+    min_r = 5;
+  }
   
-  if(max_r == 0) max_r = MIN(source.width(), source.height()) / 2;
+  if(max_r == 0)
+  {
+    max_r = MIN(source.width(), source.height()) / 2;
+  }
   
+  ggc::Timer timer("serial");
+  timer.start();
+
   QVector<Image> houghs(max_r - min_r);
   
-  #pragma omp parallel for
   for(unsigned int i = min_r; i < max_r; i++)
   {
-    /* instantiate circle template */
-    const PointArray circle = circle_template(i);
-
     /* instantiate Hough-space for circles of radius i */
     Image &hough = houghs[i - min_r];
     hough.resize(binary.width());
     for(unsigned int x = 0; x < hough.size(); x++)
     {
       hough[x].resize(binary.height());
-      hough[x].fill(0);
+      for(unsigned int y = 0; y < hough[x].size(); y++)
+      {
+        hough[x][y] = 0;
+      }
     }
     
-    ggc::Timer t("radius");
-    t.start();
-
     /* find all the edges */
-    for(unsigned int y = 0; y < binary.height(); y++)
+    for(unsigned int x = 0; x < binary.width(); x++)
     {
-      for(unsigned int x = 0; x < binary.width(); x++)
+      for(unsigned int y = 0; y < binary.height(); y++)
       {
         /* edge! */
         if(binary.pixelIndex(x, y) == 1)
         {
-          accum_circle(hough, QPoint(x, y), circle);
+          accum_circle(hough, QPoint(x, y), i);
         }
       }
     }
-
-    t.stop();
-    printf("Radius %d Time: %llu ns\n", i, t.duration());
     
     /* loop through all the Hough-space images, searching for bright spots, which
     indicate the center of a circle, then draw circles in image-space */
@@ -92,13 +92,14 @@ QImage HoughCircleDetector::detect(const QImage &source, unsigned int min_r, uns
       {
         if(hough[x][y] > threshold)
         {
-          draw_circle(detection, QPoint(x, y), circle, Qt::yellow);
+          draw_circle(detection, QPoint(x, y), i, Qt::yellow);
         }
       }
     }
-
   }
     
+  timer.stop();
+  printf("Time: %llu ns\n", timer.duration());
   return detection;
 }
 
@@ -123,10 +124,41 @@ QImage HoughCircleDetector::detect(const QImage &source, unsigned int min_r, uns
 ** Adapted from: http://en.wikipedia.org/wiki/Midpoint_circle_algorithm
 **
 ****************************************************************************/
-void HoughCircleDetector::accum_circle(Image &image, const QPoint &position, const PointArray &points)
+void HoughCircleDetector::accum_circle(Image &image, const QPoint &position, unsigned int radius)
 {
-  for (int i = 0; i < points.size(); i++)
-    accum_pixel(image, position + points[i]);
+  int f = 1 - radius;
+  int ddF_x = 1;
+  int ddF_y = -2 * radius;
+  int x = 0;
+  int y = radius;
+  
+  accum_pixel(image, QPoint(position.x(), position.y() + radius));
+  accum_pixel(image, QPoint(position.x(), position.y() - radius));
+  accum_pixel(image, QPoint(position.x() + radius, position.y()));
+  accum_pixel(image, QPoint(position.x() - radius, position.y()));
+  
+  while(x < y)
+  {
+    if(f >= 0)
+    {
+      y--;
+      ddF_y += 2;
+      f += ddF_y;
+    }
+    
+    x++;
+    ddF_x += 2;
+    f += ddF_x;
+    
+    accum_pixel(image, QPoint(position.x() + x, position.y() + y));
+    accum_pixel(image, QPoint(position.x() - x, position.y() + y));
+    accum_pixel(image, QPoint(position.x() + x, position.y() - y));
+    accum_pixel(image, QPoint(position.x() - x, position.y() - y));
+    accum_pixel(image, QPoint(position.x() + y, position.y() + x));
+    accum_pixel(image, QPoint(position.x() - y, position.y() + x));
+    accum_pixel(image, QPoint(position.x() + y, position.y() - x));
+    accum_pixel(image, QPoint(position.x() - y, position.y() - x));
+  }
 }
 
 /****************************************************************************
@@ -158,26 +190,19 @@ void HoughCircleDetector::accum_pixel(Image &image, const QPoint &position)
 ** Adapted from: http://en.wikipedia.org/wiki/Midpoint_circle_algorithm
 **
 ****************************************************************************/
-void HoughCircleDetector::draw_circle(QImage &image, const QPoint &position, const PointArray &points, const QColor &color)
-{
-  for (int i = 0; i < points.size(); i++)
-    draw_pixel(image, position + points[i], color);
-}
-
-const PointArray HoughCircleDetector::circle_template(unsigned int radius)
+void HoughCircleDetector::draw_circle(QImage &image, const QPoint &position, unsigned int radius, const QColor &color)
 {
   int f = 1 - radius;
   int ddF_x = 1;
   int ddF_y = -2 * radius;
   int x = 0;
   int y = radius;
-
-  PointArray points;
-  points << QPoint(0,  radius)
-         << QPoint(0, -radius)
-         << QPoint( radius, 0)
-         << QPoint(-radius, 0);
-
+  
+  draw_pixel(image, QPoint(position.x(), position.y() + radius), color);
+  draw_pixel(image, QPoint(position.x(), position.y() - radius), color);
+  draw_pixel(image, QPoint(position.x() + radius, position.y()), color);
+  draw_pixel(image, QPoint(position.x() - radius, position.y()), color);
+  
   while(x < y)
   {
     if(f >= 0)
@@ -190,17 +215,16 @@ const PointArray HoughCircleDetector::circle_template(unsigned int radius)
     x++;
     ddF_x += 2;
     f += ddF_x;
-    points << QPoint(+x, +y)
-           << QPoint(-x, +y)
-           << QPoint(+x, -y)
-           << QPoint(-x, -y)
-           << QPoint(+y, +x)
-           << QPoint(+y, -x)
-           << QPoint(-y, +x)
-           << QPoint(-y, -x);
+    
+    draw_pixel(image, QPoint(position.x() + x, position.y() + y), color);
+    draw_pixel(image, QPoint(position.x() - x, position.y() + y), color);
+    draw_pixel(image, QPoint(position.x() + x, position.y() - y), color);
+    draw_pixel(image, QPoint(position.x() - x, position.y() - y), color);
+    draw_pixel(image, QPoint(position.x() + y, position.y() + x), color);
+    draw_pixel(image, QPoint(position.x() - y, position.y() + x), color);
+    draw_pixel(image, QPoint(position.x() + y, position.y() - x), color);
+    draw_pixel(image, QPoint(position.x() - y, position.y() - x), color);
   }
-
-  return points;
 }
 
 /****************************************************************************
@@ -233,8 +257,6 @@ QImage HoughCircleDetector::edges(const QImage &source)
 {
   /* initialisation */
   QImage binary = QImage(source.size(), QImage::Format_Mono);
-  int w = source.width();
-  int h = source.height();
   
   /*** Sobel edge detection ***/
   
@@ -249,11 +271,9 @@ QImage HoughCircleDetector::edges(const QImage &source)
   Ly[1][0] = +0;  Ly[1][1] = +0;  Ly[1][2] = +0;
   Ly[2][0] = -1;  Ly[2][1] = -2;  Ly[2][2] = -1;
   
-  #pragma omp parallel for
-  for(unsigned int y = 0; y < h; y++)
+  for(unsigned int x = 0; x < source.width(); x++)
   {
-    #pragma omp parallel for
-    for(unsigned int x = 0; x < w; x++)
+    for(unsigned int y = 0; y < source.height(); y++)
     {
       double new_x = 0.0, new_y = 0.0;
       
@@ -265,11 +285,14 @@ QImage HoughCircleDetector::edges(const QImage &source)
           /* these are offset co-ords */
           int _x = x + i;
           int _y = y + j;
-
+          
           /* bounds checking */
-          _x = _x < 0 ? -_x : _x >= w ? 2 * w - _x - 2 : _x;
-          _y = _y < 0 ? -_y : _y >= h ? 2 * h - _y - 2 : _y;
-
+          if (_x < 0)                     _x = -_x;
+          else if (_x >= source.width())  _x = 2 * source.width() - _x - 2;
+          
+          if (_y < 0)                     _y = -_y;
+          else if (_y >= source.height()) _y = 2 * source.height() - _y - 2;
+          
           /* accumulate */
           int gray = qGray(source.pixel(_x, _y));
           new_x += Lx[i + 1][j + 1] * gray;

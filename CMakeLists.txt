@@ -12,5 +12,5 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.6.0)
 FIND_PACKAGE(Qt4 REQUIRED)
 
 # tell cmake to process CMakeLists.txt in these subdirs
-SUBDIRS(src)
-
+SUBDIRS(original)
+SUBDIRS(optimized)
