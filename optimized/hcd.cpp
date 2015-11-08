@@ -127,8 +127,16 @@ QImage HoughCircleDetector::detect(const QImage &source, unsigned int min_r, uns
 ****************************************************************************/
 void HoughCircleDetector::accum_circle(Image &image, const QSize &size, const QPoint &position, const PointArray &points)
 {
-  for (int i = 0; i < points.size(); i++)
-    accum_pixel(image, size, position + points[i]);
+  // split the loop for cache
+  unsigned int total = points.size();
+  for (int i = 0; i < total; i += 8) accum_pixel(image, size, position + points[i]);
+  for (int i = 1; i < total; i += 8) accum_pixel(image, size, position + points[i]);
+  for (int i = 2; i < total; i += 8) accum_pixel(image, size, position + points[i]);
+  for (int i = 3; i < total; i += 8) accum_pixel(image, size, position + points[i]);
+  for (int i = 4; i < total; i += 8) accum_pixel(image, size, position + points[i]);
+  for (int i = 5; i < total; i += 8) accum_pixel(image, size, position + points[i]);
+  for (int i = 6; i < total; i += 8) accum_pixel(image, size, position + points[i]);
+  for (int i = 7; i < total; i += 8) accum_pixel(image, size, position + points[i]);
 }
 
 /****************************************************************************
@@ -193,8 +201,8 @@ const PointArray HoughCircleDetector::circle_template(unsigned int radius)
     ddF_x += 2;
     f += ddF_x;
     points << QPoint(+x, +y)
-           << QPoint(-x, +y)
            << QPoint(+x, -y)
+           << QPoint(-x, +y)
            << QPoint(-x, -y)
            << QPoint(+y, +x)
            << QPoint(+y, -x)
