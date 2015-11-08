@@ -68,11 +68,6 @@ QImage HoughCircleDetector::detect(const QImage &source, unsigned int min_r, uns
       if(binary.pixelIndex(x, y) == 1)
         edge.append(QPoint(x, y));
 
-  /* initialize bounds */
-
-  int w = size.width();
-  int h = size.height();
-
 #if 0
   omp_set_dynamic(0);
   omp_set_num_threads(4);
