@@ -40,6 +40,7 @@ QImage HoughCircleDetector::detect(const QImage &source, unsigned int min_r, uns
 {
   QImage binary = edges(source);
   QImage detection = source.convertToFormat(QImage::Format_RGB888);
+  QSize  size = binary.size();
   
   /* build a vector to hold images in Hough-space for radius 1..max_r, where
   max_r is specified or the maximum radius of a circle in this image */
@@ -47,7 +48,16 @@ QImage HoughCircleDetector::detect(const QImage &source, unsigned int min_r, uns
   
   if(max_r == 0) max_r = MIN(source.width(), source.height()) / 2;
   
+  // QVector<Image> houghs(max_r - min_r);
   QVector<Image> houghs(max_r - min_r);
+
+  PointArray edge;
+
+  /* find all the edges */
+  for(unsigned int y = 0; y < size.height(); y++)
+    for(unsigned int x = 0; x < size.width(); x++)
+      if(binary.pixelIndex(x, y) == 1)
+        edge.append(QPoint(x, y));
   
   #pragma omp parallel for
   for(unsigned int i = min_r; i < max_r; i++)
@@ -62,40 +72,25 @@ QImage HoughCircleDetector::detect(const QImage &source, unsigned int min_r, uns
 
     /* instantiate Hough-space for circles of radius i */
     Image &hough = houghs[i - min_r];
-    hough.resize(binary.width());
-    for(unsigned int x = 0; x < hough.size(); x++)
-    {
-      hough[x].resize(binary.height());
-      hough[x].fill(0);
-    }
+    hough.resize(size.width() * size.height());
+    hough.fill(0);
 
-    /* find all the edges */
-    for(unsigned int y = 0; y < binary.height(); y++)
-    {
-      for(unsigned int x = 0; x < binary.width(); x++)
-      {
-        /* edge! */
-        if(binary.pixelIndex(x, y) == 1)
-        {
-          accum_circle(hough, QPoint(x, y), circle);
-        }
-      }
-    }
-    
+    for (unsigned int k = 0; k < edge.size(); k++)
+        accum_circle(hough, size, edge.at(k), circle);
+
     /* loop through all the Hough-space images, searching for bright spots, which
     indicate the center of a circle, then draw circles in image-space */
     unsigned int threshold = 4.9 * i;
-    for(unsigned int x = 0; x < hough.size(); x++)
+    for(unsigned int x = 0; x < size.width(); x++)
     {
-      for(unsigned int y = 0; y < hough[x].size(); y++)
+      for(unsigned int y = 0; y < size.height(); y++)
       {
-        if(hough[x][y] > threshold)
+        if(hough[x * size.width() + y] > threshold)
         {
           draw_circle(detection, QPoint(x, y), circle, Qt::yellow);
         }
       }
     }
-
 
     t.stop();
     printf("THREAD %u Radius %d Time: %llu ns\n", tid, i, t.duration());
@@ -125,10 +120,10 @@ QImage HoughCircleDetector::detect(const QImage &source, unsigned int min_r, uns
 ** Adapted from: http://en.wikipedia.org/wiki/Midpoint_circle_algorithm
 **
 ****************************************************************************/
-void HoughCircleDetector::accum_circle(Image &image, const QPoint &position, const PointArray &points)
+void HoughCircleDetector::accum_circle(Image &image, const QSize &size, const QPoint &position, const PointArray &points)
 {
   for (int i = 0; i < points.size(); i++)
-    accum_pixel(image, position + points[i]);
+    accum_pixel(image, size, position + points[i]);
 }
 
 /****************************************************************************
@@ -138,16 +133,16 @@ void HoughCircleDetector::accum_circle(Image &image, const QPoint &position, con
 ** Accumulates at the specified position
 **
 ****************************************************************************/
-void HoughCircleDetector::accum_pixel(Image &image, const QPoint &position)
+void HoughCircleDetector::accum_pixel(Image &image, const QSize &size, const QPoint &position)
 {
   /* bounds checking */
-  if(position.x() < 0 || position.x() >= image.size() ||
-     position.y() < 0 || position.y() >= image[position.x()].size())
+  if(position.x() < 0 || position.x() >= size.width() ||
+     position.y() < 0 || position.y() >= size.height())
   {
     return;
   }
   
-  image[position.x()][position.y()]++;
+  image[position.x() * size.width() + position.y()]++;
 }
 
 /****************************************************************************
