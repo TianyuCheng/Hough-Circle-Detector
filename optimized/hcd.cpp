@@ -14,11 +14,14 @@
 #include <cstdio>
 #include <omp.h>
 
+#include <iostream>
+
 #include "Timer.h"
 
 #define TIMER
 #define MIN(X,Y) ((X) < (Y) ? (X) : (Y))
 
+typedef int v8si __attribute__ ((vector_size (32)));
 
 bool QPointLessThan(const QPoint &s1, const QPoint &s2)
 {
@@ -64,6 +67,11 @@ QImage HoughCircleDetector::detect(const QImage &source, unsigned int min_r, uns
     for(unsigned int x = 0; x < size.width(); x++)
       if(binary.pixelIndex(x, y) == 1)
         edge.append(QPoint(x, y));
+
+  /* initialize bounds */
+
+  int w = size.width();
+  int h = size.height();
 
 #if 0
   omp_set_dynamic(0);
@@ -133,10 +141,33 @@ QImage HoughCircleDetector::detect(const QImage &source, unsigned int min_r, uns
 ****************************************************************************/
 void HoughCircleDetector::accum_circle(Image &image, const QSize &size, const QPoint &position, const PointArray &points)
 {
-  // split the loop for cache
+  v8si *center, *offset; 
+  v8si result;
+
+  // set center
+  PointArray centers(4);
+  centers.fill(position);
+  center = (v8si *) centers.constData();
+
+  // iterate through circle edge points
   unsigned int total = points.size();
-  for (int i = 0; i < total; i++)
-      accum_pixel(image, size, position + points[i]);
+  for (int i = 0; i < total; i += 4) {
+    offset = (v8si *) &points[i];
+    result = *center + *offset;
+    QPoint *pos = (QPoint *) &result;
+
+#if 0
+    std::cout << "(" << pos[0].x() << "," << pos[0].y() << ")" << "\t"
+              << "(" << pos[1].x() << "," << pos[1].y() << ")" << "\t"
+              << "(" << pos[2].x() << "," << pos[2].y() << ")" << "\t"
+              << "(" << pos[3].x() << "," << pos[3].y() << ")" << "\n";
+#endif
+
+    accum_pixel(image, size, pos[0]);
+    accum_pixel(image, size, pos[1]);
+    accum_pixel(image, size, pos[2]);
+    accum_pixel(image, size, pos[3]);
+  }
 }
 
 /****************************************************************************
