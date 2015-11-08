@@ -76,19 +76,19 @@ QImage HoughCircleDetector::detect(const QImage &source, unsigned int min_r, uns
     hough.fill(0);
 
     for (unsigned int k = 0; k < edge.size(); k++)
-        accum_circle(hough, size, edge.at(k), circle);
+      accum_circle(hough, size, edge.at(k), circle);
 
     /* loop through all the Hough-space images, searching for bright spots, which
     indicate the center of a circle, then draw circles in image-space */
     unsigned int threshold = 4.9 * i;
-    for(unsigned int x = 0; x < size.width(); x++)
+    unsigned int total = size.width() * size.height();
+    for (unsigned int k = 0; k < total; k++)
     {
-      for(unsigned int y = 0; y < size.height(); y++)
+      if (hough[k] > threshold)
       {
-        if(hough[x * size.width() + y] > threshold)
-        {
-          draw_circle(detection, QPoint(x, y), circle, Qt::yellow);
-        }
+        unsigned int x = k / size.width();
+        unsigned int y = k % size.width();
+        draw_circle(detection, QPoint(x, y), circle, Qt::yellow);
       }
     }
 
