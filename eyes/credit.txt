@@ -1,0 +1,4 @@
+eye0:       http://www.cl.cam.ac.uk/~jgd1000/iriscode.jpg
+eye1:       http://i.stack.imgur.com/a9sdR.jpg
+eye2:       http://www.wired.com/images_blogs/threatlevel/2012/07/Iris-Image_Galbally-Study1.jpg
+eye3:       http://biometrics.idealtest.org/userfiles/image/CasiaV1Fig.2.jpg
