@@ -100,8 +100,8 @@ QImage HoughCircleDetector::detect(const QImage &source, unsigned int min_r, uns
     {
       if (hough[k] > threshold)
       {
-        unsigned int x = k / size.width();
-        unsigned int y = k % size.width();
+        unsigned int x = k / size.height();
+        unsigned int y = k % size.height();
         draw_circle(detection, QPoint(x, y), circle, Qt::yellow);
       }
     }
@@ -181,7 +181,7 @@ void HoughCircleDetector::accum_pixel(Image &image, const QSize &size, const QPo
     return;
   }
   
-  image[position.x() * size.width() + position.y()]++;
+  image[position.x() * size.height() + position.y()]++;
 }
 
 /****************************************************************************
