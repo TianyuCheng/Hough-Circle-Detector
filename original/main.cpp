@@ -10,6 +10,7 @@
 #include <QImageReader>
 
 #include "hcd.h"
+#include "Timer.h"
 
 /****************************************************************************
 **
@@ -78,7 +79,12 @@ int main(int argc, char **argv)
   the specified output file ***/
   
   HoughCircleDetector hcd;  
+  ggc::Timer t("detect");
+  t.start();
   QImage result = hcd.detect(source_image, min_r, max_r);
+  t.stop();
+  printf("Time: %llu ns\n", t.duration());
+
   result.save(output);
 }
 

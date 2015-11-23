@@ -79,7 +79,9 @@ QImage HoughCircleDetector::detect(const QImage &source, unsigned int min_r, uns
     ggc::Timer t("radius");
     t.start();
 
+#if 0
     unsigned int tid = omp_get_thread_num();
+#endif
 
     /* instantiate circle template */
     const PointArray circle = circle_template(i);
@@ -106,8 +108,10 @@ QImage HoughCircleDetector::detect(const QImage &source, unsigned int min_r, uns
       }
     }
 
+#if 0
     t.stop();
     printf("THREAD %u Radius %d Time: %llu ns\n", tid, i, t.duration());
+#endif
   }
     
   return detection;

@@ -12,7 +12,6 @@
 #include <cmath>
 #include <cstdlib>
 #include <cstdio>
-#include "Timer.h"
 
 #define MIN(X,Y) ((X) < (Y) ? (X) : (Y))
 
@@ -51,9 +50,6 @@ QImage HoughCircleDetector::detect(const QImage &source, unsigned int min_r, uns
     max_r = MIN(source.width(), source.height()) / 2;
   }
   
-  ggc::Timer timer("serial");
-  timer.start();
-
   QVector<Image> houghs(max_r - min_r);
   
   for(unsigned int i = min_r; i < max_r; i++)
@@ -98,8 +94,6 @@ QImage HoughCircleDetector::detect(const QImage &source, unsigned int min_r, uns
     }
   }
     
-  timer.stop();
-  printf("Time: %llu ns\n", timer.duration());
   return detection;
 }
 
