@@ -23,6 +23,9 @@
 
 typedef int v8si __attribute__ ((vector_size (32)));
 
+static v8si *lower_bounds;
+static v8si *higher_bounds;
+
 bool QPointLessThan(const QPoint &s1, const QPoint &s2)
 {
     return s1.x() == s2.x() ? s1.x() < s2.x() : s1.y() < s2.y();
@@ -54,35 +57,32 @@ QImage HoughCircleDetector::detect(const QImage &source, unsigned int min_r, uns
   /* build a vector to hold images in Hough-space for radius 1..max_r, where
   max_r is specified or the maximum radius of a circle in this image */
   if(min_r == 0) min_r = 5;
-  
   if(max_r == 0) max_r = MIN(source.width(), source.height()) / 2;
   
-  // QVector<Image> houghs(max_r - min_r);
   QVector<Image> houghs(max_r - min_r);
 
-  PointArray edge;
-
   /* find all the edges */
+  PointArray edge;
   for(unsigned int y = 0; y < size.height(); y++)
     for(unsigned int x = 0; x < size.width(); x++)
       if(binary.pixelIndex(x, y) == 1)
         edge.append(QPoint(x, y));
 
-#if 0
-  omp_set_dynamic(0);
-  omp_set_num_threads(4);
-#endif
+  /* construct vectorized boundary */
+  {
+      int low[8] = { -1, -1, -1, -1, -1, -1, -1, -1 };
+      lower_bounds = (v8si *) low;
+
+      int w = size.width();
+      int h = size.height();
+      int high[8] = { w, h, w, h, w, h, w, h };
+      higher_bounds = (v8si *) high;
+  }
+
 
   #pragma omp parallel for
   for(unsigned int i = min_r; i < max_r; i++)
   {
-    ggc::Timer t("radius");
-    t.start();
-
-#if 0
-    unsigned int tid = omp_get_thread_num();
-#endif
-
     /* instantiate circle template */
     const PointArray circle = circle_template(i);
 
@@ -107,11 +107,6 @@ QImage HoughCircleDetector::detect(const QImage &source, unsigned int min_r, uns
         draw_circle(detection, QPoint(x, y), circle, Qt::yellow);
       }
     }
-
-#if 0
-    t.stop();
-    printf("THREAD %u Radius %d Time: %llu ns\n", tid, i, t.duration());
-#endif
   }
     
   return detection;
@@ -143,49 +138,30 @@ void HoughCircleDetector::accum_circle(Image &image, const QSize &size, const QP
   v8si *center, *offset; 
   v8si result;
 
-  // set center
+  // set vectorized center
   PointArray centers(4);
   centers.fill(position);
   center = (v8si *) centers.constData();
+
+  const int &w = size.width();
+  const int &h = size.height();
 
   // iterate through circle edge points
   unsigned int total = points.size();
   for (int i = 0; i < total; i += 4) {
     offset = (v8si *) &points[i];
     result = *center + *offset;
-    QPoint *pos = (QPoint *) &result;
 
-#if 0
-    std::cout << "(" << pos[0].x() << "," << pos[0].y() << ")" << "\t"
-              << "(" << pos[1].x() << "," << pos[1].y() << ")" << "\t"
-              << "(" << pos[2].x() << "," << pos[2].y() << ")" << "\t"
-              << "(" << pos[3].x() << "," << pos[3].y() << ")" << "\n";
-#endif
+    v8si v1 = result > *lower_bounds;
+    v8si v2 = result < *higher_bounds;
+    v8si valid = v1 && v2;
 
-    accum_pixel(image, size, pos[0]);
-    accum_pixel(image, size, pos[1]);
-    accum_pixel(image, size, pos[2]);
-    accum_pixel(image, size, pos[3]);
+    int *pos = (int *) &result;
+    if (valid[0] && valid[1]) image[pos[0] * h + pos[1]]++;
+    if (valid[2] && valid[3]) image[pos[2] * h + pos[3]]++;
+    if (valid[4] && valid[5]) image[pos[4] * h + pos[5]]++;
+    if (valid[6] && valid[7]) image[pos[6] * h + pos[7]]++;
   }
-}
-
-/****************************************************************************
-**
-** Author: Marc Bowes
-**
-** Accumulates at the specified position
-**
-****************************************************************************/
-void HoughCircleDetector::accum_pixel(Image &image, const QSize &size, const QPoint &position)
-{
-  /* bounds checking */
-  if(position.x() < 0 || position.x() >= size.width() ||
-     position.y() < 0 || position.y() >= size.height())
-  {
-    return;
-  }
-  
-  image[position.x() * size.height() + position.y()]++;
 }
 
 /****************************************************************************
@@ -200,8 +176,32 @@ void HoughCircleDetector::accum_pixel(Image &image, const QSize &size, const QPo
 ****************************************************************************/
 void HoughCircleDetector::draw_circle(QImage &image, const QPoint &position, const PointArray &points, const QColor &color)
 {
-  for (int i = 0; i < points.size(); i++)
-    draw_pixel(image, position + points[i], color);
+  QRgb rgb = color.rgb();
+
+  v8si *center, *offset; 
+  v8si result;
+
+  // set vectorized center
+  PointArray centers(4);
+  centers.fill(position);
+  center = (v8si *) centers.constData();
+
+  // iterate through circle edge points
+  unsigned int total = points.size();
+  for (int i = 0; i < total; i += 4) {
+    offset = (v8si *) &points[i];
+    result = *center + *offset;
+
+    v8si v1 = result > *lower_bounds;
+    v8si v2 = result < *higher_bounds;
+    v8si valid = v1 && v2;
+
+    QPoint *pos = (QPoint *) &result;
+    if (valid[0] && valid[1]) image.setPixel(pos[0], rgb);
+    if (valid[2] && valid[3]) image.setPixel(pos[1], rgb);
+    if (valid[4] && valid[5]) image.setPixel(pos[2], rgb);
+    if (valid[6] && valid[7]) image.setPixel(pos[3], rgb);
+  }
 }
 
 const PointArray HoughCircleDetector::circle_template(unsigned int radius)
@@ -242,25 +242,6 @@ const PointArray HoughCircleDetector::circle_template(unsigned int radius)
 
   qSort(points.begin(), points.end(), QPointLessThan);
   return points;
-}
-
-/****************************************************************************
-**
-** Author: Marc Bowes
-**
-** Draws at the specified position
-**
-****************************************************************************/
-void HoughCircleDetector::draw_pixel(QImage &image, const QPoint &position, const QColor &color)
-{
-  /* bounds checking */
-  if(position.x() < 0 || position.x() >= image.width() ||
-     position.y() < 0 || position.y() >= image.height())
-  {
-    return;
-  }
-  
-  image.setPixel(position, color.rgb());
 }
 
 /****************************************************************************

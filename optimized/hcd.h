@@ -25,10 +25,7 @@ class HoughCircleDetector
   private: /* methods */
   
     void accum_circle(Image &image, const QSize &size, const QPoint &position, const PointArray &points);
-    void accum_pixel(Image &image, const QSize &size, const QPoint &position);
-  
     void draw_circle(QImage &image, const QPoint &position, const PointArray &points, const QColor &color);
-    void draw_pixel(QImage &image, const QPoint &position, const QColor &color);
     const PointArray circle_template(unsigned int radius);
     
     QImage edges(const QImage &source);
