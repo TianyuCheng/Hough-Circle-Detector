@@ -13,6 +13,9 @@
 #include <cstdlib>
 #include <cstdio>
 
+#include "Timer.h"
+
+#define TIMER 0
 #define MIN(X,Y) ((X) < (Y) ? (X) : (Y))
 
 
@@ -51,9 +54,15 @@ QImage HoughCircleDetector::detect(const QImage &source, unsigned int min_r, uns
   }
   
   QVector<Image> houghs(max_r - min_r);
+
   
   for(unsigned int i = min_r; i < max_r; i++)
   {
+#if TIMER
+    ggc::Timer t("radius");
+    t.start();
+#endif
+
     /* instantiate Hough-space for circles of radius i */
     Image &hough = houghs[i - min_r];
     hough.resize(binary.width());
@@ -92,6 +101,11 @@ QImage HoughCircleDetector::detect(const QImage &source, unsigned int min_r, uns
         }
       }
     }
+
+#if TIMER
+    t.stop();
+    printf("Radius %d Time: %llu ns\n", i, t.duration());
+#endif
   }
     
   return detection;
