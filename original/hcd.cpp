@@ -15,7 +15,6 @@
 
 #include "Timer.h"
 
-#define TIMER 0
 #define MIN(X,Y) ((X) < (Y) ? (X) : (Y))
 
 

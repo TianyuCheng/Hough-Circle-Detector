@@ -18,8 +18,6 @@
 
 #include "Timer.h"
 
-#define TIMER 0
-// #define GCC_5_2
 #define MIN(X,Y) ((X) < (Y) ? (X) : (Y))
 
 typedef int v8si __attribute__ ((vector_size (32)));

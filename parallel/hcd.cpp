@@ -17,11 +17,10 @@
 
 #include "Timer.h"
 
-#define TIMER 0
 #define MIN(X,Y) ((X) < (Y) ? (X) : (Y))
 
 typedef int v8si __attribute__ ((vector_size (32)));
-
+static v8si one = { 1, -1, 1, -1, 1, -1, 1, -1 };
 
 /****************************************************************************
                 __   ___                 __  __           __
