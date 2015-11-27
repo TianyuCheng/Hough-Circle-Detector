@@ -77,8 +77,12 @@ QImage HoughCircleDetector::detect(const QImage &source, unsigned int min_r, uns
       hough[x].fill(0);
     }
     
-    for (PointArray::const_iterator iter = edge.constBegin(); iter != edge.constEnd();)
+    /* unroll accumulate circle */
+    PointArray::const_iterator iter = edge.constBegin();
+    if (edge.size() % 2 == 1)
         accum_circle(hough, *iter++, i);
+    for (; iter != edge.constEnd();)
+        accum_circle2(hough, *iter++, *iter++, i);
     
     /* loop through all the Hough-space images, searching for bright spots, which
     indicate the center of a circle, then draw circles in image-space */
@@ -152,6 +156,39 @@ void HoughCircleDetector::accum_circle(Image &image, const QPoint &position, uns
     image[cx + y][cy - x]++;
     image[cx - y][cy + x]++; 
     image[cx - y][cy - x]++;
+  }
+}
+
+void HoughCircleDetector::accum_circle2(Image &image, const QPoint &p1, const QPoint &p2, unsigned int radius)
+{
+  int cx1 = p1.x() + radius; int cx2 = p2.x() + radius;
+  int cy1 = p1.y() + radius; int cy2 = p2.y() + radius;
+
+  int r = radius;
+  int f = 1 - r;
+  int ddF_x = 1;
+  int ddF_y = -2 * r;
+  int x = 0;
+  int y = r;
+
+  image[cx1][cy1 + r]++; image[cx2][cy2 + r]++;
+  image[cx1][cy1 - r]++; image[cx2][cy2 - r]++;
+  image[cx1 + r][cy1]++; image[cx2 + r][cy2]++;
+  image[cx1 - r][cy1]++; image[cx2 - r][cy2]++;
+  
+  while(x < y)
+  {
+    if(f >= 0) { y--; ddF_y += 2; f += ddF_y; }
+    x++; ddF_x += 2; f += ddF_x; 
+
+    image[cx1 + x][cy1 + y]++; image[cx2 + x][cy2 + y]++;
+    image[cx1 - x][cy1 + y]++; image[cx2 - x][cy2 + y]++;
+    image[cx1 + x][cy1 - y]++; image[cx2 + x][cy2 - y]++;
+    image[cx1 - x][cy1 - y]++; image[cx2 - x][cy2 - y]++;
+    image[cx1 + y][cy1 + x]++; image[cx2 + y][cy2 + x]++;  
+    image[cx1 + y][cy1 - x]++; image[cx2 + y][cy2 - x]++;
+    image[cx1 - y][cy1 + x]++; image[cx2 - y][cy2 + x]++;  
+    image[cx1 - y][cy1 - x]++; image[cx2 - y][cy2 - x]++;
   }
 }
 
