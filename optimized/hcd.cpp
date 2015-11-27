@@ -164,12 +164,15 @@ void HoughCircleDetector::accum_circle(Image &image, const QSize &size, const QP
 #else
     v8si v1 = result - *lower_bounds;
     v8si v2 = result - *higher_bounds;
+
+    int *vv1 = (int *) &v1;
+    int *vv2 = (int *) &v2;
     int *pos = (int *) &result;
 
-    if (v1[0] > 0 && v1[1] > 0 && v2[0] < 0 && v2[1] < 0) image[pos[0] * h + pos[1]]++;
-    if (v1[2] > 0 && v1[3] > 0 && v2[2] < 0 && v2[3] < 0) image[pos[2] * h + pos[3]]++;
-    if (v1[4] > 0 && v1[5] > 0 && v2[4] < 0 && v2[5] < 0) image[pos[4] * h + pos[5]]++;
-    if (v1[6] > 0 && v1[7] > 0 && v2[6] < 0 && v2[7] < 0) image[pos[6] * h + pos[7]]++;
+    if (vv1[0] > 0 && vv1[1] > 0 && vv2[0] < 0 && vv2[1] < 0) image[pos[0] * h + pos[1]]++;
+    if (vv1[2] > 0 && vv1[3] > 0 && vv2[2] < 0 && vv2[3] < 0) image[pos[2] * h + pos[3]]++;
+    if (vv1[4] > 0 && vv1[5] > 0 && vv2[4] < 0 && vv2[5] < 0) image[pos[4] * h + pos[5]]++;
+    if (vv1[6] > 0 && vv1[7] > 0 && vv2[6] < 0 && vv2[7] < 0) image[pos[6] * h + pos[7]]++;
 #endif
   }
 }
@@ -215,11 +218,14 @@ void HoughCircleDetector::draw_circle(QImage &image, const QPoint &position, con
     v8si v1 = result - *lower_bounds;
     v8si v2 = result - *higher_bounds;
 
+    int *vv1 = (int *) &v1;
+    int *vv2 = (int *) &v2;
     QPoint *pos = (QPoint *) &result;
-    if (v1[0] > 0 && v1[1] > 0 && v2[0] < 0 && v2[1] < 0) image.setPixel(pos[0], rgb);
-    if (v1[2] > 0 && v1[3] > 0 && v2[2] < 0 && v2[3] < 0) image.setPixel(pos[1], rgb);
-    if (v1[4] > 0 && v1[5] > 0 && v2[4] < 0 && v2[5] < 0) image.setPixel(pos[2], rgb);
-    if (v1[6] > 0 && v1[7] > 0 && v2[6] < 0 && v2[7] < 0) image.setPixel(pos[3], rgb);
+
+    if (vv1[0] > 0 && vv1[1] > 0 && vv2[0] < 0 && vv2[1] < 0) image.setPixel(pos[0], rgb);
+    if (vv1[2] > 0 && vv1[3] > 0 && vv2[2] < 0 && vv2[3] < 0) image.setPixel(pos[1], rgb);
+    if (vv1[4] > 0 && vv1[5] > 0 && vv2[4] < 0 && vv2[5] < 0) image.setPixel(pos[2], rgb);
+    if (vv1[6] > 0 && vv1[7] > 0 && vv2[6] < 0 && vv2[7] < 0) image.setPixel(pos[3], rgb);
 #endif
   }
 }
