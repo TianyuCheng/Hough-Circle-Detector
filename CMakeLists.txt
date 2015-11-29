@@ -16,12 +16,11 @@ ADD_DEFINITIONS(-O3)
 ADD_DEFINITIONS(-std=c++11)
 
 # user-defined flags
-ADD_DEFINITIONS(-DTIMER=1)
+# ADD_DEFINITIONS(-DTIMER=1)
 
 # add profiles
 # SET(CMAKE_CXX_FLAGS "-pg")
 
 # tell cmake to process CMakeLists.txt in these subdirs
 SUBDIRS(original)
-SUBDIRS(optimized)
 SUBDIRS(parallel)
