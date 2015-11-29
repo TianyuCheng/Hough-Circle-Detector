@@ -21,7 +21,6 @@ class HoughCircleDetector
   public: /* methods */
   
     QImage detect(const QImage &source, unsigned int min_r, unsigned int max_r);
-    QImage detect2(const QImage &source, unsigned int min_r, unsigned int max_r);
   
   private: /* methods */
     void accum_circle(Image &image, const QPoint &position, unsigned int radius);

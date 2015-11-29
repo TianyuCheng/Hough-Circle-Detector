@@ -53,11 +53,9 @@ QImage HoughCircleDetector::detect(const QImage &source, unsigned int min_r, uns
   QVector<IntArray> edge(source.height());
   #pragma omp parallel for
   for (unsigned int y = 0; y < binary.height(); y++)
-  {
     for (unsigned int x = 0; x < binary.width(); x++)
       if(binary.pixelIndex(x, y) == 1)
         edge[y].append(x);
-  }
 
   QVector<Image> houghs(max_r - min_r);
   
@@ -91,73 +89,6 @@ QImage HoughCircleDetector::detect(const QImage &source, unsigned int min_r, uns
         if(hough[y][x] > threshold)
           draw_circle(detection, QPoint(x - i, y - i), i, Qt::yellow);
 
-#if TIMER
-    t.stop();
-    printf("THREAD %u Radius %d Time: %llu ns\n", tid, i, t.duration());
-#endif
-  }
-    
-  return detection;
-}
-
-/****************************************************************************
-**
-** Author: Marc Bowes
-**
-** Detects circles in the specified QImage
-**
-****************************************************************************/
-QImage HoughCircleDetector::detect2(const QImage &source, unsigned int min_r, unsigned int max_r)
-{
-  QImage binary = edges(source);
-  QImage detection = source.convertToFormat(QImage::Format_RGB888);
-  
-  /* build a vector to hold images in Hough-space for radius 1..max_r, where
-  max_r is specified or the maximum radius of a circle in this image */
-  if(min_r == 0) min_r = 5;
-  if(max_r == 0) max_r = MIN(source.width(), source.height()) / 2;
-
-  /* find all the edges */
-  PointArray edge;
-  for(unsigned int y = 0; y < binary.height(); y++)
-    for(unsigned int x = 0; x < binary.width(); x++)
-      if(binary.pixelIndex(x, y) == 1)
-        edge.append(QPoint(x, y));
-
-  QVector<Image> houghs(max_r - min_r);
-  
-  #pragma omp parallel for
-  for(unsigned int i = min_r; i < max_r; i++)
-  {
-#if TIMER
-    ggc::Timer t("radius");
-    t.start();
-    unsigned int tid = omp_get_thread_num();
-#endif
-
-    /* instantiate Hough-space for circles of radius i */
-    Image &hough = houghs[i - min_r];
-    hough.resize(binary.width() + 2 * i);
-    for(unsigned int x = 0; x < hough.size(); x++)
-    {
-      hough[x].resize(binary.height() + 2 * i);
-      hough[x].fill(0);
-    }
-    
-    /* unroll accumulate circle */
-    PointArray::const_iterator iter = edge.constBegin();
-    if (edge.size() % 2 == 1)
-      accum_circle(hough, *iter++, i);
-    for (; iter != edge.constEnd();)
-      accum_circle2(hough, *iter++, *iter++, i);
-    
-    /* loop through all the Hough-space images, searching for bright spots, which
-    indicate the center of a circle, then draw circles in image-space */
-    unsigned int threshold = 4.9 * i;
-    for(unsigned int x = i; x < hough.size() - i; x++)
-      for(unsigned int y = i; y < hough[x].size() - i; y++)
-        if(hough[x][y] > threshold)
-          draw_circle(detection, QPoint(x - i, y - i), i, Qt::yellow);
 #if TIMER
     t.stop();
     printf("THREAD %u Radius %d Time: %llu ns\n", tid, i, t.duration());
@@ -298,7 +229,7 @@ void HoughCircleDetector::draw_circle(QImage &image, const QPoint &position, uns
 
 void HoughCircleDetector::accum_circle_row(Image &image, unsigned int row, const IntArray &col_indices, unsigned int radius)
 {
-  int cy = row + radius;
+  int cy = radius + row;
   int cx = radius;
 
   int r = radius;
@@ -308,24 +239,24 @@ void HoughCircleDetector::accum_circle_row(Image &image, unsigned int row, const
   int x = 0;
   int y = r;
 
-  for (auto dx : col_indices) image[cy + r][cx + dx]++;
-  for (auto dx : col_indices) image[cy - r][cx + dx]++;
-  for (auto dx : col_indices) image[cy][cx + dx - r]++;
-  for (auto dx : col_indices) image[cy][cx + dx + r]++;
-  
+  for (auto col : col_indices) image[cy + r][cx + col]++;
+  for (auto col : col_indices) image[cy - r][cx + col]++;
+  for (auto col : col_indices) image[cy][cx + col + r]++;
+  for (auto col : col_indices) image[cy][cx + col - r]++;
+
   while(x < y)
   {
     if(f >= 0) { y--; ddF_y += 2; f += ddF_y; }
     x++; ddF_x += 2; f += ddF_x; 
 
-    for (auto dx : col_indices) image[cy + y][cx + dx + x]++;
-    for (auto dx : col_indices) image[cy + y][cx + dx - x]++;
-    for (auto dx : col_indices) image[cy - y][cx + dx + x]++;
-    for (auto dx : col_indices) image[cy - y][cx + dx - x]++;
-    for (auto dx : col_indices) image[cy + x][cx + dx + y]++; 
-    for (auto dx : col_indices) image[cy + x][cx + dx + y]++; 
-    for (auto dx : col_indices) image[cy - x][cx + dx + y]++;
-    for (auto dx : col_indices) image[cy - x][cx + dx + y]++;
+    for (auto col : col_indices) image[cy + y][cx + col + x]++;
+    for (auto col : col_indices) image[cy + y][cx + col - x]++;
+    for (auto col : col_indices) image[cy + x][cx + col + y]++;
+    for (auto col : col_indices) image[cy + x][cx + col - y]++;
+    for (auto col : col_indices) image[cy - y][cx + col + x]++;
+    for (auto col : col_indices) image[cy - y][cx + col - x]++;
+    for (auto col : col_indices) image[cy - x][cx + col + y]++;
+    for (auto col : col_indices) image[cy - x][cx + col - y]++;
   }
 }
 

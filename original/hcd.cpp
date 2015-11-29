@@ -12,6 +12,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <cstdio>
+#include <iostream>
 
 #include "Timer.h"
 
