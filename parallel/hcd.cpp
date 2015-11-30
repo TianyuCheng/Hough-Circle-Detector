@@ -67,7 +67,7 @@ QImage HoughCircleDetector::detect(const QImage &source, unsigned int min_r, uns
 
     /* instantiate Hough-space for circles of radius i */
     Image &hough = houghs[i - min_r];
-    hough.resize(binary.height() + 2 * i);
+    hough.resize(binary.height());
     for(unsigned int y = 0; y < hough.size(); y++)
       hough[y].resize(binary.width() + 2 * i);          // no need to resize, QVector::resize initialize new values to default value 0
     
@@ -78,10 +78,10 @@ QImage HoughCircleDetector::detect(const QImage &source, unsigned int min_r, uns
     /* loop through all the Hough-space images, searching for bright spots, which
     indicate the center of a circle, then draw circles in image-space */
     unsigned int threshold = 4.9 * i;
-    for(unsigned int y = i; y < hough.size() - i; y++)
+    for(unsigned int y = 0; y < hough.size(); y++)
       for(unsigned int x = i; x < hough[y].size() - i; x++)
         if(hough[y][x] > threshold)
-          draw_circle(detection, QPoint(x - i, y - i), i, Qt::yellow);
+          draw_circle(detection, QPoint(x - i, y), i, Qt::yellow);
 
 #if TIMER
     t.stop();
@@ -114,7 +114,7 @@ QImage HoughCircleDetector::detect(const QImage &source, unsigned int min_r, uns
 ****************************************************************************/
 void HoughCircleDetector::accum_circle_row(Image &image, unsigned int row, const IntArray &col_indices, unsigned int radius)
 {
-  int cy = radius + row;
+  int cy = row;
   int cx = radius;
 
   int r = radius;
@@ -124,8 +124,11 @@ void HoughCircleDetector::accum_circle_row(Image &image, unsigned int row, const
   int x = 0;
   int y = r;
 
-  for (auto col : col_indices) image[cy + r][cx + col]++;
-  for (auto col : col_indices) image[cy - r][cx + col]++;
+  int width = image[0].size();
+
+  // reduce unnecessary voting for margin area
+  if (cy + r >= 0 && cy + r < width) for (auto col : col_indices) image[cy + r][cx + col]++;
+  if (cy - r >= 0 && cy - r < width) for (auto col : col_indices) image[cy - r][cx + col]++;
   for (auto col : col_indices) image[cy][cx + col + r]++;
   for (auto col : col_indices) image[cy][cx + col - r]++;
 
@@ -135,10 +138,10 @@ void HoughCircleDetector::accum_circle_row(Image &image, unsigned int row, const
     x++; ddF_x += 2; f += ddF_x; 
 
     // reduce unnecessary voting for margin area
-    if (cy + y >= r && cy + y < image[cy + y].size() - r) for (auto col : col_indices) { image[cy + y][cx + col + x]++; image[cy + y][cx + col - x]++; }
-    if (cy + y >= r && cy + y < image[cy + y].size() - r) for (auto col : col_indices) { image[cy + x][cx + col + y]++; image[cy + x][cx + col - y]++; }
-    if (cy + y >= r && cy + y < image[cy + y].size() - r) for (auto col : col_indices) { image[cy - y][cx + col + x]++; image[cy - y][cx + col - x]++; }
-    if (cy + y >= r && cy + y < image[cy + y].size() - r) for (auto col : col_indices) { image[cy - x][cx + col + y]++; image[cy - x][cx + col - y]++; }
+    if (cy + y >= 0 && cy + y < width) for (auto col : col_indices) { image[cy + y][cx + col + x]++; image[cy + y][cx + col - x]++; }
+    if (cy + x >= 0 && cy + x < width) for (auto col : col_indices) { image[cy + x][cx + col + y]++; image[cy + x][cx + col - y]++; }
+    if (cy - y >= 0 && cy - y < width) for (auto col : col_indices) { image[cy - y][cx + col + x]++; image[cy - y][cx + col - x]++; }
+    if (cy - x >= 0 && cy - x < width) for (auto col : col_indices) { image[cy - x][cx + col + y]++; image[cy - x][cx + col - y]++; }
   }
 }
 
