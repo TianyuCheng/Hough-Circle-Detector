@@ -134,21 +134,11 @@ void HoughCircleDetector::accum_circle_row(Image &image, unsigned int row, const
     if(f >= 0) { y--; ddF_y += 2; f += ddF_y; }
     x++; ddF_x += 2; f += ddF_x; 
 
-#if 0
-    for (auto col : col_indices) image[cy + y][cx + col + x]++;
-    for (auto col : col_indices) image[cy + y][cx + col - x]++;
-    for (auto col : col_indices) image[cy + x][cx + col + y]++;
-    for (auto col : col_indices) image[cy + x][cx + col - y]++;
-    for (auto col : col_indices) image[cy - y][cx + col + x]++;
-    for (auto col : col_indices) image[cy - y][cx + col - x]++;
-    for (auto col : col_indices) image[cy - x][cx + col + y]++;
-    for (auto col : col_indices) image[cy - x][cx + col - y]++;
-#else
-    for (auto col : col_indices) { image[cy + y][cx + col + x]++; image[cy + y][cx + col - x]++; }
-    for (auto col : col_indices) { image[cy + x][cx + col + y]++; image[cy + x][cx + col - y]++; }
-    for (auto col : col_indices) { image[cy - y][cx + col + x]++; image[cy - y][cx + col - x]++; }
-    for (auto col : col_indices) { image[cy - x][cx + col + y]++; image[cy - x][cx + col - y]++; }
-#endif
+    // reduce unnecessary voting for margin area
+    if (cy + y >= r && cy + y < image[cy + y].size() - r) for (auto col : col_indices) { image[cy + y][cx + col + x]++; image[cy + y][cx + col - x]++; }
+    if (cy + y >= r && cy + y < image[cy + y].size() - r) for (auto col : col_indices) { image[cy + x][cx + col + y]++; image[cy + x][cx + col - y]++; }
+    if (cy + y >= r && cy + y < image[cy + y].size() - r) for (auto col : col_indices) { image[cy - y][cx + col + x]++; image[cy - y][cx + col - x]++; }
+    if (cy + y >= r && cy + y < image[cy + y].size() - r) for (auto col : col_indices) { image[cy - x][cx + col + y]++; image[cy - x][cx + col - y]++; }
   }
 }
 
