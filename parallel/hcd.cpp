@@ -140,6 +140,7 @@ void HoughCircleDetector::accum_circle_row(Image &image, unsigned int row, const
     if(f >= 0) { y--; ddF_y += 2; f += ddF_y; }
     x++; ddF_x += 2; f += ddF_x; 
 
+#if 0
     for (auto col : col_indices) image[cy + y][cx + col + x]++;
     for (auto col : col_indices) image[cy + y][cx + col - x]++;
     for (auto col : col_indices) image[cy + x][cx + col + y]++;
@@ -148,6 +149,12 @@ void HoughCircleDetector::accum_circle_row(Image &image, unsigned int row, const
     for (auto col : col_indices) image[cy - y][cx + col - x]++;
     for (auto col : col_indices) image[cy - x][cx + col + y]++;
     for (auto col : col_indices) image[cy - x][cx + col - y]++;
+#else
+    for (auto col : col_indices) { image[cy + y][cx + col + x]++; image[cy + y][cx + col - x]++; }
+    for (auto col : col_indices) { image[cy + x][cx + col + y]++; image[cy + x][cx + col - y]++; }
+    for (auto col : col_indices) { image[cy - y][cx + col + x]++; image[cy - y][cx + col - x]++; }
+    for (auto col : col_indices) { image[cy - x][cx + col + y]++; image[cy - x][cx + col - y]++; }
+#endif
   }
 }
 

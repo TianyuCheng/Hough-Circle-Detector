@@ -12,11 +12,12 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.6.0)
 FIND_PACKAGE(Qt4 REQUIRED)
 
 # user-defined flags
-ADD_DEFINITIONS(-DTIMER=1)
+# ADD_DEFINITIONS(-DTIMER=1)
 
 # add cxx flags
 SET(CMAKE_CXX_FLAGS "-O3 --std=c++11 ${CMAKE_CXX_FLAGS}")
-SET(CMAKE_CXX_FLAGS "-pg ${CMAKE_CXX_FLAGS}")
+# SET(CMAKE_CXX_FLAGS "-ggdb3 ${CMAKE_CXX_FLAGS}")
+# SET(CMAKE_CXX_FLAGS "-pg ${CMAKE_CXX_FLAGS}")
 
 # tell cmake to process CMakeLists.txt in these subdirs
 SUBDIRS(original)
