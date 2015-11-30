@@ -1,0 +1,31 @@
+#!/usr/bin/env python
+
+from __future__ import division
+import os,sys,math
+
+N = 100
+minr = 32
+maxr = 96
+
+def run(*args):
+    lines = os.popen(' '.join(map(str, args))).readlines()
+    return lines
+
+def extract(*args):
+    lines = run(*args)
+    time = filter(lambda x: x.isdigit(), lines[0].split())
+    return int(time[0])
+
+def average(*args):
+    times = [ extract(*args) for i in range(N) ]
+    avg = sum(times) / float(N)
+    sd = math.sqrt(sum(map(lambda x: (x-avg)**2, times)) / float(N))
+    CI = 1.96 * sd / math.sqrt(N)
+    return avg, CI
+
+if __name__ == '__main__':
+
+    exe = ' '.join(sys.argv[1:])
+    p_time, p_CI = average(exe)
+    print "AVG TIME: ", p_time
+    print "95% CI: ", p_CI
