@@ -69,10 +69,7 @@ QImage HoughCircleDetector::detect(const QImage &source, unsigned int min_r, uns
     Image &hough = houghs[i - min_r];
     hough.resize(binary.height() + 2 * i);
     for(unsigned int y = 0; y < hough.size(); y++)
-    {
-      hough[y].resize(binary.width() + 2 * i);
-      hough[y].fill(0);
-    }
+      hough[y].resize(binary.width() + 2 * i);          // no need to resize, QVector::resize initialize new values to default value 0
     
     /* vote for the circle with whole row of points */
     for (unsigned int y = 0; y < edge.size(); y++)
