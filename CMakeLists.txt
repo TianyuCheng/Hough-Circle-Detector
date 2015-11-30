@@ -11,15 +11,12 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.6.0)
 # find and setup Qt4 for this project
 FIND_PACKAGE(Qt4 REQUIRED)
 
-# add defines
-ADD_DEFINITIONS(-O3)
-ADD_DEFINITIONS(-std=c++11)
-
 # user-defined flags
-# ADD_DEFINITIONS(-DTIMER=1)
+ADD_DEFINITIONS(-DTIMER=1)
 
-# add profiles
-# SET(CMAKE_CXX_FLAGS "-pg")
+# add cxx flags
+SET(CMAKE_CXX_FLAGS "-O3 --std=c++11 ${CMAKE_CXX_FLAGS}")
+SET(CMAKE_CXX_FLAGS "-pg ${CMAKE_CXX_FLAGS}")
 
 # tell cmake to process CMakeLists.txt in these subdirs
 SUBDIRS(original)

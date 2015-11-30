@@ -109,18 +109,19 @@ QImage HoughCircleDetector::detect(const QImage &source, unsigned int min_r, uns
 
 /****************************************************************************
 **
-** Author: Marc Bowes
+** Author: Tianyu Cheng
+** modified from Marc Bowes' original method
 **
-** Accumulates a circle on the specified image at the specified position with
+** Draws a circle on the specified image at the specified position with
 ** the specified radius, using the midpoint circle drawing algorithm
 **
 ** Adapted from: http://en.wikipedia.org/wiki/Midpoint_circle_algorithm
 **
 ****************************************************************************/
-void HoughCircleDetector::accum_circle(Image &image, const QPoint &position, unsigned int radius)
+void HoughCircleDetector::accum_circle_row(Image &image, unsigned int row, const IntArray &col_indices, unsigned int radius)
 {
-  int cx = position.x() + radius;
-  int cy = position.y() + radius;
+  int cy = radius + row;
+  int cx = radius;
 
   int r = radius;
   int f = 1 - r;
@@ -129,59 +130,27 @@ void HoughCircleDetector::accum_circle(Image &image, const QPoint &position, uns
   int x = 0;
   int y = r;
 
-  image[cx][cy + r]++;
-  image[cx][cy - r]++;
-  image[cx + r][cy]++;
-  image[cx - r][cy]++;
-  
+  for (auto col : col_indices) image[cy + r][cx + col]++;
+  for (auto col : col_indices) image[cy - r][cx + col]++;
+  for (auto col : col_indices) image[cy][cx + col + r]++;
+  for (auto col : col_indices) image[cy][cx + col - r]++;
+
   while(x < y)
   {
     if(f >= 0) { y--; ddF_y += 2; f += ddF_y; }
     x++; ddF_x += 2; f += ddF_x; 
 
-    image[cx + x][cy + y]++;
-    image[cx - x][cy + y]++;
-    image[cx + x][cy - y]++;
-    image[cx - x][cy - y]++;
-    image[cx + y][cy + x]++; 
-    image[cx + y][cy - x]++;
-    image[cx - y][cy + x]++; 
-    image[cx - y][cy - x]++;
+    for (auto col : col_indices) image[cy + y][cx + col + x]++;
+    for (auto col : col_indices) image[cy + y][cx + col - x]++;
+    for (auto col : col_indices) image[cy + x][cx + col + y]++;
+    for (auto col : col_indices) image[cy + x][cx + col - y]++;
+    for (auto col : col_indices) image[cy - y][cx + col + x]++;
+    for (auto col : col_indices) image[cy - y][cx + col - x]++;
+    for (auto col : col_indices) image[cy - x][cx + col + y]++;
+    for (auto col : col_indices) image[cy - x][cx + col - y]++;
   }
 }
 
-void HoughCircleDetector::accum_circle2(Image &image, const QPoint &p1, const QPoint &p2, unsigned int radius)
-{
-  int cx1 = p1.x() + radius; int cx2 = p2.x() + radius;
-  int cy1 = p1.y() + radius; int cy2 = p2.y() + radius;
-
-  int r = radius;
-  int f = 1 - r;
-  int ddF_x = 1;
-  int ddF_y = -2 * r;
-  int x = 0;
-  int y = r;
-
-  image[cx1][cy1 + r]++; image[cx2][cy2 + r]++;
-  image[cx1][cy1 - r]++; image[cx2][cy2 - r]++;
-  image[cx1 + r][cy1]++; image[cx2 + r][cy2]++;
-  image[cx1 - r][cy1]++; image[cx2 - r][cy2]++;
-  
-  while(x < y)
-  {
-    if(f >= 0) { y--; ddF_y += 2; f += ddF_y; }
-    x++; ddF_x += 2; f += ddF_x; 
-
-    image[cx1 + x][cy1 + y]++; image[cx2 + x][cy2 + y]++;
-    image[cx1 - x][cy1 + y]++; image[cx2 - x][cy2 + y]++;
-    image[cx1 + x][cy1 - y]++; image[cx2 + x][cy2 - y]++;
-    image[cx1 - x][cy1 - y]++; image[cx2 - x][cy2 - y]++;
-    image[cx1 + y][cy1 + x]++; image[cx2 + y][cy2 + x]++;  
-    image[cx1 + y][cy1 - x]++; image[cx2 + y][cy2 - x]++;
-    image[cx1 - y][cy1 + x]++; image[cx2 - y][cy2 + x]++;  
-    image[cx1 - y][cy1 - x]++; image[cx2 - y][cy2 - x]++;
-  }
-}
 
 /****************************************************************************
 **
@@ -224,39 +193,6 @@ void HoughCircleDetector::draw_circle(QImage &image, const QPoint &position, uns
     draw_pixel(image, cx + y, cy - x, rgb);
     draw_pixel(image, cx - y, cy + x, rgb);
     draw_pixel(image, cx - y, cy - x, rgb);
-  }
-}
-
-void HoughCircleDetector::accum_circle_row(Image &image, unsigned int row, const IntArray &col_indices, unsigned int radius)
-{
-  int cy = radius + row;
-  int cx = radius;
-
-  int r = radius;
-  int f = 1 - r;
-  int ddF_x = 1;
-  int ddF_y = -2 * r;
-  int x = 0;
-  int y = r;
-
-  for (auto col : col_indices) image[cy + r][cx + col]++;
-  for (auto col : col_indices) image[cy - r][cx + col]++;
-  for (auto col : col_indices) image[cy][cx + col + r]++;
-  for (auto col : col_indices) image[cy][cx + col - r]++;
-
-  while(x < y)
-  {
-    if(f >= 0) { y--; ddF_y += 2; f += ddF_y; }
-    x++; ddF_x += 2; f += ddF_x; 
-
-    for (auto col : col_indices) image[cy + y][cx + col + x]++;
-    for (auto col : col_indices) image[cy + y][cx + col - x]++;
-    for (auto col : col_indices) image[cy + x][cx + col + y]++;
-    for (auto col : col_indices) image[cy + x][cx + col - y]++;
-    for (auto col : col_indices) image[cy - y][cx + col + x]++;
-    for (auto col : col_indices) image[cy - y][cx + col - x]++;
-    for (auto col : col_indices) image[cy - x][cx + col + y]++;
-    for (auto col : col_indices) image[cy - x][cx + col - y]++;
   }
 }
 
