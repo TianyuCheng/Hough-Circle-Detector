@@ -11,8 +11,6 @@ pictures = [0]
 threads = [1, 2, 4, 8, 10, 12, 14, 16]
 
 N = 100
-minr = 32
-maxr = 96
 
 def run(*args):
     lines = os.popen(' '.join(map(str, args))).readlines()
@@ -32,6 +30,9 @@ def average(*args):
 
 if __name__ == '__main__':
 
+    minr = 32
+    maxr = 96
+
     for pic in pictures:
         for scale in scales:
             with open("data/%d-eye%d.csv" % (scale, pic), "w") as f:
@@ -40,6 +41,8 @@ if __name__ == '__main__':
                 for thread in threads:
                     print "Run HCD on <%s> with %d threads" % (image, thread)
                     os.environ["OMP_NUM_THREADS"] = str(thread)
+                    N = 10
                     s_time, s_CI = average(original, "--source=%s" % image, "--minr=%d" % minr, "--maxr=%d" % maxr)
+                    N = 100
                     p_time, p_CI = average(parallel, "--source=%s" % image, "--minr=%d" % minr, "--maxr=%d" % maxr)
                     print >> f, "%d,%d,%.2f,%.2f,%.2f,%.2f,%.2f" % (scale, thread, s_time, p_time, s_time / p_time, s_time / (p_time + p_CI), s_time / (p_time - p_CI))
