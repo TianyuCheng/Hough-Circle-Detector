@@ -3,11 +3,12 @@
 from __future__ import division
 import os,sys,math
 
-parallel = "../build/optimized/hcd_p"
-serial   = "../build/original/hcd_s"
+original = "../build/original/hcd_s"
+parallel = "../build/parallel/hcd_p"
 
 scales = [ 240, 360, 480, 600, 720, 840, 960 ]
-pictures = [0, 1, 2]
+pictures = [0]
+threads = [1, 2, 4, 8, 10, 12, 14, 16]
 
 N = 100
 minr = 32
@@ -32,19 +33,13 @@ def average(*args):
 if __name__ == '__main__':
 
     for pic in pictures:
-        s_times = []
-        p_times = []
         for scale in scales:
-            print "Run HCD on %d-eye%d.jpg" % (scale, pic)
-            image = "../scales/%d-eye%d.jpg" % (scale, pic)
-            s_time, s_CI = average(serial, "--source=%s" % image, "--minr=%d" % minr, "--maxr=%d" % maxr)
-            p_time, p_CI = average(parallel, "--source=%s" % image, "--minr=%d" % minr, "--maxr=%d" % maxr)
-            s_times.append(s_time)
-            p_times.append(p_time)
-
-        csv = "eye%d.csv" % pic
-
-        with open("data/%s" % csv, "w") as f:
-            print >> f, "size,s_time,p_time,speedup"
-            for i, scale in enumerate(scales):
-                print >> f, "%d,%d,%d,%f" % (scale, s_times[i], p_times[i], s_times[i] / p_times[i])
+            with open("data/%d-eye%d.csv" % (scale, pic), "w") as f:
+                print >> f, "size,threads,sequential_time,parallel_time,speedup,speedup_ci_low,speedup_ci_high"
+                image = "../scales/%d-eye%d.jpg" % (scale, pic)
+                for thread in threads:
+                    print "Run HCD on <%s> with %d threads" % (image, thread)
+                    os.environ["OMP_NUM_THREADS"] = str(thread)
+                    s_time, s_CI = average(original, "--source=%s" % image, "--minr=%d" % minr, "--maxr=%d" % maxr)
+                    p_time, p_CI = average(parallel, "--source=%s" % image, "--minr=%d" % minr, "--maxr=%d" % maxr)
+                    print >> f, "%d,%d,%.2f,%.2f,%.2f,%.2f,%.2f" % (scale, thread, s_time, p_time, s_time / p_time, s_time / (p_time + p_CI), s_time / (p_time - p_CI))

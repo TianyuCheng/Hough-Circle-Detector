@@ -27,5 +27,5 @@ if __name__ == '__main__':
 
     exe = ' '.join(sys.argv[1:])
     p_time, p_CI = average(exe)
-    print "AVG TIME: ", p_time
-    print "95% CI: ", p_CI
+    print "TIME: ", p_time
+    print "CI: ", p_CI
